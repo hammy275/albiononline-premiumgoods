@@ -3,6 +3,14 @@ import requests
 import json
 
 
+def print_info():
+    """Prints some Useful Info."""
+    print("Luxury Good Sell Values:")
+    print("\n\nNon-Premium:\nT4: 940 silver\nT5: 4,700 silver\nT6: 23,500 silver")
+    print("\nPremium:\nT4: 970 silver\nT5: 4,850 silver\nT6: 24,250 silver\n")
+    print("Lowest price luxury goods:")
+
+
 def get_city_by_id(item_id):
     """Get City by Item ID.
 
@@ -186,6 +194,7 @@ def main():
             t5_price_pairs[key["item_id"]] = (lowest_price, lowest_price_city)
         else:
             t6_price_pairs[key["item_id"]] = (lowest_price, lowest_price_city)
+    print_info()
     t4_lowest = get_lowest_price(t4_price_pairs)
     print("Lowest for T4 is from {} to {} at approximately {} silver per item".format(t4_lowest[2], get_city_by_id(t4_lowest[0]), t4_lowest[1]))
     t5_lowest = get_lowest_price(t5_price_pairs)
