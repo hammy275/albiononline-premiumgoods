@@ -3,6 +3,17 @@ import json
 
 
 def get_city_by_id(item_id):
+    """Get City by Item ID.
+
+    Given the item ID of a luxury good, return which city it needs to be brought to.
+
+    Args:
+        item_id (str): Item ID
+
+    Returns:
+        str: City name the item should be brought to.
+
+    """
     ids_to_city = {
         "RITUAL": "Caerleon",
         "KNOWLEDGE": "Martlock",
@@ -17,21 +28,53 @@ def get_city_by_id(item_id):
 
 
 def get_request(url):
+    """Simple GET Request.
+
+    Args:
+        url (str): URL with parameters to GET request to.
+
+    Returns:
+        dict: Dictionary form of a JSON response.
+
+    """
     r = requests.get(url)
     return json.loads(r.text)
 
 
 def get_item_data(items, locations):
+    """Get Item Data.
+
+    Given a list of items and locations, get the market info for them.
+
+    Args:
+        items (str[] or str[][]): List of items to get prices for.
+        locations (str[]): Locations to get item pricing info from.
+
+    Returns:
+        dict: The dictionary response from albion-online-data.com
+
+    """
     items = list(items)
-    for i in range(len(items)):
-        items[i] = ",".join(items[i])
+    if type(items) is list:
+        for i in range(len(items)):
+            items[i] = ",".join(items[i])
     items = ",".join(items)
     url = "https://albion-online-data.com/api/v2/stats/prices/{}?locations={}".format(
         items, ",".join(locations)
     )
     return get_request(url)
 
+
 def gen_treasure_names(name):
+    """Get List of Treasure IDs by Type.
+
+    Args:
+        name (str): The name of the treasure (CEREMONIAL, KNOWLEDGE, etc.)
+
+    Returns:
+        str[]: The list of luxury goods IDs.
+
+    """
     names = []
     for i in range(3):
         names.append("TREASURE_{}_RARITY{}".format(name.upper(), str(i+1)))
@@ -39,6 +82,17 @@ def gen_treasure_names(name):
 
 
 def get_input(question, answers, default=None):
+    """Get User Input.
+
+    Args:
+        question (str): Question to ask user (passed directly to input())
+        answers (str[]): List of possible answers. Must be all lowercase.
+        default (str, optional): If specified, the answer to have if none is supplied. Defaults to None.
+
+    Returns:
+        str: The answer from the user.
+
+    """
     answer = None
     while not answer or answer not in answers:
         answer = input(question).lower()
@@ -48,6 +102,17 @@ def get_input(question, answers, default=None):
 
 
 def get_lowest_price(price_dict):
+    """Get Lowest Price.
+
+    Get the lowest price for a given premium good from all of the lowest prices of that tier's premium good.
+
+    Args:
+        price_dict (dict): See usage in code for format of dict.
+
+    Returns:
+        tuple: The item id, the lowest price, and the city with that lowest price.
+
+    """
     lowest_price = 999999
     lowest_city_from = None
     item = None
@@ -57,6 +122,30 @@ def get_lowest_price(price_dict):
             lowest_city_from = price_dict[list(price_dict.keys())[i]][1]
             item = list(price_dict.keys())[i]
     return (item, lowest_price, lowest_city_from)
+
+
+def is_neighbor(a, b):
+    """Check if City Neighbors Another.
+
+    Args:
+        a (str): City A
+        b (str): City B
+
+    Returns:
+        bool: Whether or not cities A and B neighbor each other.
+
+    """
+    if "Caerleon" in [a, b]:
+        return True
+    cities = ["Lymhurst", "Bridgewatch", "Martlock", "Thetford", "Fort Sterling"]
+    start = cities.index(a)
+    check_a = start - 1
+    check_b = start + 1
+    if check_a < 0:
+        check_a = len(cities) - 1
+    if check_b >= len(cities):
+        check_b = 0
+    return b in [cities[check_a], cities[check_b]]
 
 
 
@@ -72,6 +161,8 @@ def main():
     use_caerleon = get_input("Check Caerleon? [y/N] ", ['y', 'n'], 'n')
     if use_caerleon != "y":
         del premium_goods_dict["Caerleon"]
+    neighbor = get_input("Only check routes between neighbors? [y/N] ", ['y', 'n'], 'n')
+    use_neighbors = neighbor == 'y'
     item_data = get_item_data(premium_goods_dict.values(), premium_goods_dict.keys())
     city_count = len(premium_goods_dict)
     item_count = len(premium_goods_dict.values()) * 3
@@ -83,6 +174,8 @@ def main():
         lowest_price_city = None
         for c in range(city_count):
             key = item_data[i * city_count + c]
+            if use_neighbors and not is_neighbor(key["city"], get_city_by_id(key["item_id"])):
+                continue
             if key["buy_price_max"] < lowest_price and key["buy_price_max"] > 10:
                 lowest_price = key["buy_price_max"]
                 lowest_price_city = key["city"]
